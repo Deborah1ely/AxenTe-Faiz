@@ -1,3 +1,5 @@
+package br.uffs.cc.jarena;
+
 /**
  * Agente da equipe AxenteFaiz
  * 
@@ -7,30 +9,71 @@
  *  
  * Estratégia:
  *  O agente se movimenta até encontrar um cogumelo, quando encontrado o agente se multiplica
- * uma única vez e manda a coordenada do cogumelo para os outros agentes.
+ *  uma única vez, respeitando o limite máximo de agentes na equipe.
+ *  Quando ele encontra o cogumelo, o agente manda uma mensagem para todos irem em direção a ele.
+ *
+ *  Sua movimentação principal é voltada ao centro, cujo a chance de encontrar cogumelo é maior.
+ * 
+ *  Quando a vida do agente chega em 30 ele para de se mover com o intuito de economizar energia.
+ *  Essa mesma estrategia é aplicada quando não há mais inimigos na arena.
  */
 
-package br.uffs.cc.jarena;
-
 public class AgenteAxenteFaiz extends Agente {
-    
-    private boolean jaDividiu = false; // controla se já se dividiu após ganhar energia
+
+    private static boolean inimigosDerrotados = false;
+
+    private boolean jaDividiu = false;
+    private static int totalAgentes = 0;
+    private static final int MAX_AGENTES = 30;
+
+
     private Integer alvoX = null;
     private Integer alvoY = null;
+
+    private final int centroX = 25;
+    private final int centroY = 25;
+    private boolean indoParaCentro = true;
 
     public AgenteAxenteFaiz(Integer x, Integer y, Integer energia) {
         super(x, y, energia);
         setDirecao(geraDirecaoAleatoria());
+        totalAgentes++;
     }
 
     @Override
     public void pensa() {
-        // Se temos um alvo (um cogumelo informado por outro agente)
+        if (getEnergia() < 30) {
+            para();
+            return;
+        }
+
+        if (inimigosDerrotados) {
+        para();
+        return;
+    }
+
+    
+        if (indoParaCentro) {
+            moverParaCoordenada(centroX, centroY);
+
+            if (Math.abs(getX() - centroX) <= 2 && Math.abs(getY() - centroY) <= 2) {
+                indoParaCentro = false; 
+            }
+            return;
+        }
         if (alvoX != null && alvoY != null) {
             moverParaCoordenada(alvoX, alvoY);
+
+            if (Math.abs(getX() - alvoX) <= 1 && Math.abs(getY() - alvoY) <= 1) {
+                alvoX = null;
+                alvoY = null;
+            }
         } else {
-            // Movimento aleatório normal
             if (!podeMoverPara(getDirecao())) {
+                setDirecao(geraDirecaoAleatoria());
+            }
+
+            if (Math.random() < 0.3) {
                 setDirecao(geraDirecaoAleatoria());
             }
         }
@@ -38,40 +81,37 @@ public class AgenteAxenteFaiz extends Agente {
 
     @Override
     public void recebeuEnergia() {
-        // Ao receber energia, divide-se uma vez e envia posição para aliados
-        if (podeDividir() && !jaDividiu) {
+        if (podeDividir() && !jaDividiu && totalAgentes < MAX_AGENTES && getEnergia() > 60) {
             divide();
             jaDividiu = true;
         }
-
-        // Envia localização atual — interpretada como o local do cogumelo
         enviaMensagem("COGUMELO:" + getX() + ":" + getY());
     }
 
     @Override
     public void recebeuMensagem(String msg) {
-        // Espera receber mensagem no formato "COGUMELO:x:y"
         if (msg.startsWith("COGUMELO:")) {
-            String[] partes = msg.split(":");
-            if (partes.length == 3) {
-                try {
-                    alvoX = Integer.parseInt(partes[1]);
-                    alvoY = Integer.parseInt(partes[2]);
-                } catch (NumberFormatException e) {
-                    // ignora mensagem inválida
-                }
-            }
+        String[] partes = msg.split(":");
+        if (partes.length == 3) {
+            try {
+                alvoX = Integer.parseInt(partes[1]);
+                alvoY = Integer.parseInt(partes[2]);
+            } catch (NumberFormatException e) { }
         }
+    } else if (msg.equals("TODOS_INIMIGOS_MORTOS")) {
+        inimigosDerrotados = true; 
     }
+}
 
     @Override
     public void tomouDano(int energiaRestanteInimigo) {
-        // comportamento padrão: ignora
     }
 
     @Override
     public void ganhouCombate() {
-        // comportamento padrão: ignora
+        enviaMensagem("INIMIGO_MORTO");
+
+        inimigosDerrotados = false;
     }
 
     @Override
@@ -79,39 +119,14 @@ public class AgenteAxenteFaiz extends Agente {
         return "AxenteFaiz";
     }
 
-    // Move-se passo a passo até uma coordenada
-
-
-package br.uffs.cc.jarena;
-
-public class AgenteDummy extends Agente
-{
-	public AgenteDummy(Integer x, Integer y, Integer energia) {
-		super(x, y, energia);
-		setDirecao(geraDirecaoAleatoria());
-	}
-	
-	public void pensa() {
-		if(!podeMoverPara(getDirecao())) {
-			setDirecao(geraDirecaoAleatoria());
-		}
-		
-		if(podeDividir() && getEnergia() >= 800) {
-			divide();
-		}
-	}
-
     private void moverParaCoordenada(int destinoX, int destinoY) {
         int dx = destinoX - getX();
         int dy = destinoY - getY();
 
-        int direcao = getDirecao();
+        if (dx == 0 && dy == 0) return; 
+        int direcao;
 
         if (Math.abs(dx) > Math.abs(dy)) {
-            // Move horizontalmente
-            direcao = dx > 0 ? DIREITA : ESQUERDA;
-        } else {
-            // Move verticalmente
             direcao = dx > 0 ? DIREITA : ESQUERDA;
         } else {
             direcao = dy > 0 ? BAIXO : CIMA;
@@ -119,35 +134,6 @@ public class AgenteDummy extends Agente
 
         if (podeMoverPara(direcao)) {
             setDirecao(direcao);
-        } else {
-            setDirecao(geraDirecaoAleatoria());
         }
     }
-	
-	public void recebeuEnergia() {
-		enviaMensagem("COGUMELO:" + getX() + ":" + getY());
-	}
-	
-	public void tomouDano(int energiaRestanteInimigo) {
-	}
-	
-	public void ganhouCombate() {
-	}
-	
-	public void recebeuMensagem(String msg) {
-        if (msg.startsWith("COGUMELO:")) {
-            String[] partes = msg.split(":");
-            if (partes.length == 3) {
-                try {
-                    alvoX = Integer.parseInt(partes[1]);
-                    alvoY = Integer.parseInt(partes[2]);
-                } catch (NumberFormatException e) {
-                }
-            }
-        }
-    }
-	
-	public String getEquipe() {
-		return "AxenteFaiz";
-	}
 }
