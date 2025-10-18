@@ -17,7 +17,7 @@ package br.uffs.cc.jarena;
  *  Quando a vida do agente chega em 30 ele para de se mover com o intuito de economizar energia.
  *  Essa mesma estrategia é aplicada quando não há mais inimigos na arena.
  * 
- * aaaa
+ * Teste Teste
  */
 
 public class AgenteAxenteFaiz extends Agente {
