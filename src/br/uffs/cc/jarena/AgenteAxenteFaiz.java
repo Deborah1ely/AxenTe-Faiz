@@ -74,12 +74,50 @@ public class AgenteAxenteFaiz extends Agente {
             if (!podeMoverPara(getDirecao())) {
                 setDirecao(geraDirecaoAleatoria());
             }
+          
+    private void moverParaCoordenada(int destinoX, int destinoY) {
+        int dx = destinoX - getX();
+        int dy = destinoY - getY();
 
-            if (Math.random() < 0.3) {
-                setDirecao(geraDirecaoAleatoria());
-            }
+        if (dx == 0 && dy == 0) return; 
+        int direcao;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            direcao = dx > 0 ? DIREITA : ESQUERDA;
+        } else {
+            direcao = dy > 0 ? BAIXO : CIMA;
+        }
+
+        if (podeMoverPara(direcao)) {
+            setDirecao(direcao);
         }
     }
+
+    @Override
+    public void recebeuEnergia() {
+        if (podeDividir() && !jaDividiu && totalAgentes < MAX_AGENTES && getEnergia() > 60) {
+            divide();
+            jaDividiu = true;
+        }
+        enviaMensagem("COGUMELO:" + getX() + ":" + getY());
+    }
+
+    @Override
+    public void recebeuMensagem(String msg) {
+        if (msg.startsWith("COGUMELO:")) {
+        String[] partes = msg.split(":");
+        if (partes.length == 3) {
+            try {
+                alvoX = Integer.parseInt(partes[1]);
+                alvoY = Integer.parseInt(partes[2]);
+            } catch (NumberFormatException e) { }
+          
+        }
+    } else if (msg.equals("TODOS_INIMIGOS_MORTOS")) {
+        inimigosDerrotados = true; 
+    }}
+      
+      
     @Override
     public void tomouDano(int energiaRestanteInimigo) {
     }
