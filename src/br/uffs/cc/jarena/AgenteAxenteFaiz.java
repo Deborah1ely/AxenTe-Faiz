@@ -1,4 +1,5 @@
 
+
 package br.uffs.cc.jarena;
 
 /**
@@ -9,48 +10,17 @@ package br.uffs.cc.jarena;
  *  - Kauã Perosso
  *  
  * Estratégia:
- *  O agente se movimenta até encontrar um cogumelo, quando encontrado o agente se multiplica
+ * '- No início, apenas 5% dos agentes (escolhidos aleatoriamente) ficam parados como mini-bases.
+ *  - O restante sai explorando o mapa em busca de cogumelos.
+ *  - Quando algum agente encontrar um cogumelo, ele envia uma mensagem com sua posição e energia.
+ *  - O agente com maior energia se torna a "base principal" (apenas 1 pode estar parado assim).
+ *  - Quando um novo agente tiver mais energia, ele assume o posto de base e o anterior volta a explorar.
+ * 
+ */
 
 
 public class AgenteAxenteFaiz extends Agente {
 
-    private static boolean inimigosDerrotados = false;
-
-    private boolean jaDividiu = false;
-    private static int totalAgentes = 0;
-    private static final int MAX_AGENTES = 30;
-
-
-    private Integer alvoX = null;
-    private Integer alvoY = null;
-
-    private final int centroX = 25;
-    private final int centroY = 25;
-    private boolean indoParaCentro = true;
-
-    public AgenteAxenteFaiz(Integer x, Integer y, Integer energia) {
-        super(x, y, energia);
-        setDirecao(geraDirecaoAleatoria());
-        totalAgentes++;
-    }
-
-    @Override
-    public void pensa() {
-        if (getEnergia() < 30) {
-            para();
-            return;
-        }
-
-        if (inimigosDerrotados) {
-        para();
-        return;
-    }
-
-    
-        if (indoParaCentro) {
-            moverParaCoordenada(centroX, centroY);
-
-public class AgenteAxenteFaiz extends Agente {
     private boolean parado = false;       
     private boolean explorador = true;     
     private boolean souBasePrincipal = false; 
@@ -65,42 +35,34 @@ public class AgenteAxenteFaiz extends Agente {
         if (Math.random() < 0.05) {
             parado = true;
             explorador = false;
-            System.out.println("[AxenteFaiz " + getId() + "] Sou uma base inicial.");
+            System.out.println("[AxenteFaiz " + getId() + "] Sou uma mini-base inicial.");
         } else {
             setDirecao(geraDirecaoAleatoria());
-            System.out.println("[AxenteFaiz " + getId() + "] Sou explorador.");
+            System.out.println("[AxenteFaiz " + getId() + "] Criado como explorador.");
         }
     }
 
- 
+    @Override
+    public void pensa() {
+        if (parado) {
+            para();
+            return;
+        }
 
-            if (Math.abs(getX() - alvoX) <= 1 && Math.abs(getY() - alvoY) <= 1) {
+        if (alvoX != null && alvoY != null) {
+            moverParaCoordenada(alvoX, alvoY);
+            if (distanciaPara(alvoX, alvoY) <= 3) {
+                para();
                 alvoX = null;
                 alvoY = null;
             }
-        } else {
-            if (!podeMoverPara(getDirecao())) {
-                setDirecao(geraDirecaoAleatoria());
-            }
-          
-    private void moverParaCoordenada(int destinoX, int destinoY) {
-        int dx = destinoX - getX();
-        int dy = destinoY - getY();
-        if (dx == 0 && dy == 0) return;
-
-        if (Math.abs(dx) > Math.abs(dy)) {
-            direcao = dx > 0 ? DIREITA : ESQUERDA;
-        } else {
-            direcao = dy > 0 ? BAIXO : CIMA;
+            return;
         }
 
-        if (podeMoverPara(direcao)) setDirecao(direcao);
+        if (!podeMoverPara(getDirecao()) || Math.random() < 0.1) {
+            setDirecao(geraDirecaoAleatoria());
+        }
     }
-
-    private int distanciaPara(int x, int y) {
-        return (int) Math.sqrt(Math.pow(getX() - x, 2) + Math.pow(getY() - y, 2));
-    }
-
 
     @Override
     public void recebeuEnergia() {
@@ -109,7 +71,6 @@ public class AgenteAxenteFaiz extends Agente {
         String msg = "COGUMELO:" + getId() + ":" + getX() + ":" + getY() + ":" + getEnergia();
         enviaMensagem(msg);
         System.out.println("[AxenteFaiz " + getId() + "] Achei cogumelo! " + msg);
-
     }
 
     @Override
@@ -159,31 +120,40 @@ public class AgenteAxenteFaiz extends Agente {
 
             } catch (NumberFormatException e) {
             }
+        }
+    }
 
-      
-      
     @Override
     public void tomouDano(int energiaRestanteInimigo) {
+        if (Math.random() < 0.5) setDirecao(geraDirecaoAleatoria());
     }
 
     @Override
     public void ganhouCombate() {
-        enviaMensagem("INIMIGO_MORTO");
-
-        inimigosDerrotados = false;
+        enviaMensagem("INIMIGO_DERROTADO");
     }
 
     @Override
-
-    public void tomouDano(int energiaRestanteInimigo) {
-        // comportamento padrão: ignora
+    public String getEquipe() {
+        return "AxenteFaiz";
     }
 
-    @Override
-    public void ganhouCombate() {
-        // comportamento padrão: ignora
+    private void moverParaCoordenada(int destinoX, int destinoY) {
+        int dx = destinoX - getX();
+        int dy = destinoY - getY();
+        if (dx == 0 && dy == 0) return;
+
+        int direcao;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            direcao = dx > 0 ? DIREITA : ESQUERDA;
+        } else {
+            direcao = dy > 0 ? BAIXO : CIMA;
+        }
+
+        if (podeMoverPara(direcao)) setDirecao(direcao);
     }
 
-
+    private int distanciaPara(int x, int y) {
+        return (int) Math.sqrt(Math.pow(getX() - x, 2) + Math.pow(getY() - y, 2));
+    }
 }
-
