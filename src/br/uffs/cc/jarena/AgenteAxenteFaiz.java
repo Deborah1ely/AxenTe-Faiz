@@ -1,3 +1,4 @@
+
 package br.uffs.cc.jarena;
 
 /**
@@ -9,16 +10,7 @@ package br.uffs.cc.jarena;
  *  
  * Estratégia:
  *  O agente se movimenta até encontrar um cogumelo, quando encontrado o agente se multiplica
- *  uma única vez, respeitando o limite máximo de agentes na equipe.
- *  Quando ele encontra o cogumelo, o agente manda uma mensagem para todos irem em direção a ele.
- *
- *  Sua movimentação principal é voltada ao centro, cujo a chance de encontrar cogumelo é maior.
- * 
- *  Quando a vida do agente chega em 30 ele para de se mover com o intuito de economizar energia.
- *  Essa mesma estrategia é aplicada quando não há mais inimigos na arena.
- * 
- * Teste Teste
- */
+
 
 public class AgenteAxenteFaiz extends Agente {
 
@@ -58,13 +50,29 @@ public class AgenteAxenteFaiz extends Agente {
         if (indoParaCentro) {
             moverParaCoordenada(centroX, centroY);
 
-            if (Math.abs(getX() - centroX) <= 2 && Math.abs(getY() - centroY) <= 2) {
-                indoParaCentro = false; 
-            }
-            return;
+public class AgenteAxenteFaiz extends Agente {
+    private boolean parado = false;       
+    private boolean explorador = true;     
+    private boolean souBasePrincipal = false; 
+    private Integer alvoX = null;          
+    private Integer alvoY = null;
+
+    private int idBasePrincipal = -1;      
+
+    public AgenteAxenteFaiz(Integer x, Integer y, Integer energia) {
+        super(x, y, energia);
+
+        if (Math.random() < 0.05) {
+            parado = true;
+            explorador = false;
+            System.out.println("[AxenteFaiz " + getId() + "] Sou uma base inicial.");
+        } else {
+            setDirecao(geraDirecaoAleatoria());
+            System.out.println("[AxenteFaiz " + getId() + "] Sou explorador.");
         }
-        if (alvoX != null && alvoY != null) {
-            moverParaCoordenada(alvoX, alvoY);
+    }
+
+ 
 
             if (Math.abs(getX() - alvoX) <= 1 && Math.abs(getY() - alvoY) <= 1) {
                 alvoX = null;
@@ -78,9 +86,7 @@ public class AgenteAxenteFaiz extends Agente {
     private void moverParaCoordenada(int destinoX, int destinoY) {
         int dx = destinoX - getX();
         int dy = destinoY - getY();
-
-        if (dx == 0 && dy == 0) return; 
-        int direcao;
+        if (dx == 0 && dy == 0) return;
 
         if (Math.abs(dx) > Math.abs(dy)) {
             direcao = dx > 0 ? DIREITA : ESQUERDA;
@@ -88,34 +94,72 @@ public class AgenteAxenteFaiz extends Agente {
             direcao = dy > 0 ? BAIXO : CIMA;
         }
 
-        if (podeMoverPara(direcao)) {
-            setDirecao(direcao);
-        }
+        if (podeMoverPara(direcao)) setDirecao(direcao);
     }
+
+    private int distanciaPara(int x, int y) {
+        return (int) Math.sqrt(Math.pow(getX() - x, 2) + Math.pow(getY() - y, 2));
+    }
+
 
     @Override
     public void recebeuEnergia() {
-        if (podeDividir() && !jaDividiu && totalAgentes < MAX_AGENTES && getEnergia() > 60) {
-            divide();
-            jaDividiu = true;
-        }
-        enviaMensagem("COGUMELO:" + getX() + ":" + getY());
+        if (!explorador) return;
+
+        String msg = "COGUMELO:" + getId() + ":" + getX() + ":" + getY() + ":" + getEnergia();
+        enviaMensagem(msg);
+        System.out.println("[AxenteFaiz " + getId() + "] Achei cogumelo! " + msg);
+
     }
 
     @Override
     public void recebeuMensagem(String msg) {
-        if (msg.startsWith("COGUMELO:")) {
-        String[] partes = msg.split(":");
-        if (partes.length == 3) {
+        if (msg == null) return;
+
+        if (msg.startsWith("NOVA_BASE:")) {
             try {
-                alvoX = Integer.parseInt(partes[1]);
-                alvoY = Integer.parseInt(partes[2]);
-            } catch (NumberFormatException e) { }
-          
+                int idNovaBase = Integer.parseInt(msg.split(":")[1]);
+                idBasePrincipal = idNovaBase;
+
+                if (getId() != idNovaBase && souBasePrincipal) {
+                    souBasePrincipal = false;
+                    explorador = true;
+                    parado = false;
+                    System.out.println("[AxenteFaiz " + getId() + "] Base transferida. Voltando a explorar.");
+                }
+
+            } catch (Exception e) {
+            }
+            return;
         }
-    } else if (msg.equals("TODOS_INIMIGOS_MORTOS")) {
-        inimigosDerrotados = true; 
-    }}
+
+        if (msg.startsWith("COGUMELO:")) {
+            String[] partes = msg.split(":");
+            if (partes.length != 5) return;
+
+            try {
+                int remetenteId = Integer.parseInt(partes[1]);
+                int cx = Integer.parseInt(partes[2]);
+                int cy = Integer.parseInt(partes[3]);
+                int energiaRemetente = Integer.parseInt(partes[4]);
+
+                if (getEnergia() > energiaRemetente && !souBasePrincipal) {
+                    souBasePrincipal = true;
+                    parado = true;
+                    explorador = false;
+                    idBasePrincipal = getId();
+
+                    enviaMensagem("NOVA_BASE:" + getId());
+                    System.out.println("[AxenteFaiz " + getId() + "] Virei a nova base principal!");
+
+                } else if (!souBasePrincipal) {
+                    alvoX = cx;
+                    alvoY = cy;
+                }
+
+            } catch (NumberFormatException e) {
+            }
+
       
       
     @Override
@@ -130,8 +174,16 @@ public class AgenteAxenteFaiz extends Agente {
     }
 
     @Override
-    public String getEquipe() {
-        return "AxenteFaiz";
+
+    public void tomouDano(int energiaRestanteInimigo) {
+        // comportamento padrão: ignora
     }
 
+    @Override
+    public void ganhouCombate() {
+        // comportamento padrão: ignora
+    }
+
+
 }
+
