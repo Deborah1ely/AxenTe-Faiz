@@ -22,16 +22,17 @@ package br.uffs.cc.jarena;
 public class AgenteAxenteFaiz extends Agente {
 
     private boolean parado = false;       
-    private boolean explorador = true;     
+    private boolean explorador = true;    
     private boolean souBasePrincipal = false; 
-    private Integer alvoX = null;          
+    private Integer alvoX = null;         
     private Integer alvoY = null;
 
-    private int idBasePrincipal = -1;      
+    private int idBasePrincipal = -1;     
 
     public AgenteAxenteFaiz(Integer x, Integer y, Integer energia) {
         super(x, y, energia);
 
+    
         if (Math.random() < 0.05) {
             parado = true;
             explorador = false;
@@ -49,6 +50,7 @@ public class AgenteAxenteFaiz extends Agente {
             return;
         }
 
+      
         if (alvoX != null && alvoY != null) {
             moverParaCoordenada(alvoX, alvoY);
             if (distanciaPara(alvoX, alvoY) <= 3) {
@@ -59,6 +61,7 @@ public class AgenteAxenteFaiz extends Agente {
             return;
         }
 
+   
         if (!podeMoverPara(getDirecao()) || Math.random() < 0.1) {
             setDirecao(geraDirecaoAleatoria());
         }
@@ -68,6 +71,7 @@ public class AgenteAxenteFaiz extends Agente {
     public void recebeuEnergia() {
         if (!explorador) return;
 
+   
         String msg = "COGUMELO:" + getId() + ":" + getX() + ":" + getY() + ":" + getEnergia();
         enviaMensagem(msg);
         System.out.println("[AxenteFaiz " + getId() + "] Achei cogumelo! " + msg);
@@ -77,11 +81,13 @@ public class AgenteAxenteFaiz extends Agente {
     public void recebeuMensagem(String msg) {
         if (msg == null) return;
 
+      
         if (msg.startsWith("NOVA_BASE:")) {
             try {
                 int idNovaBase = Integer.parseInt(msg.split(":")[1]);
                 idBasePrincipal = idNovaBase;
 
+              
                 if (getId() != idNovaBase && souBasePrincipal) {
                     souBasePrincipal = false;
                     explorador = true;
@@ -90,10 +96,12 @@ public class AgenteAxenteFaiz extends Agente {
                 }
 
             } catch (Exception e) {
+                // ignora formato incorreto
             }
             return;
         }
 
+        // Mensagem de cogumelo
         if (msg.startsWith("COGUMELO:")) {
             String[] partes = msg.split(":");
             if (partes.length != 5) return;
@@ -104,27 +112,33 @@ public class AgenteAxenteFaiz extends Agente {
                 int cy = Integer.parseInt(partes[3]);
                 int energiaRemetente = Integer.parseInt(partes[4]);
 
+              
                 if (getEnergia() > energiaRemetente && !souBasePrincipal) {
+                 
                     souBasePrincipal = true;
                     parado = true;
                     explorador = false;
                     idBasePrincipal = getId();
 
+                   
                     enviaMensagem("NOVA_BASE:" + getId());
                     System.out.println("[AxenteFaiz " + getId() + "] Virei a nova base principal!");
 
                 } else if (!souBasePrincipal) {
+                
                     alvoX = cx;
                     alvoY = cy;
                 }
 
             } catch (NumberFormatException e) {
+           
             }
         }
     }
 
     @Override
     public void tomouDano(int energiaRestanteInimigo) {
+
         if (Math.random() < 0.5) setDirecao(geraDirecaoAleatoria());
     }
 
@@ -137,7 +151,6 @@ public class AgenteAxenteFaiz extends Agente {
     public String getEquipe() {
         return "AxenteFaiz";
     }
-
     private void moverParaCoordenada(int destinoX, int destinoY) {
         int dx = destinoX - getX();
         int dy = destinoY - getY();
