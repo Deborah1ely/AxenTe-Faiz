@@ -1,3 +1,6 @@
+
+package br.uffs.cc.jarena;
+
 /**
  * Agente da equipe AxenteFaiz
  * 
@@ -7,10 +10,45 @@
  *  
  * Estratégia:
  *  O agente se movimenta até encontrar um cogumelo, quando encontrado o agente se multiplica
- * uma única vez e manda a coordenada do cogumelo para os outros agentes.
- */
 
-package br.uffs.cc.jarena;
+
+public class AgenteAxenteFaiz extends Agente {
+
+    private static boolean inimigosDerrotados = false;
+
+    private boolean jaDividiu = false;
+    private static int totalAgentes = 0;
+    private static final int MAX_AGENTES = 30;
+
+
+    private Integer alvoX = null;
+    private Integer alvoY = null;
+
+    private final int centroX = 25;
+    private final int centroY = 25;
+    private boolean indoParaCentro = true;
+
+    public AgenteAxenteFaiz(Integer x, Integer y, Integer energia) {
+        super(x, y, energia);
+        setDirecao(geraDirecaoAleatoria());
+        totalAgentes++;
+    }
+
+    @Override
+    public void pensa() {
+        if (getEnergia() < 30) {
+            para();
+            return;
+        }
+
+        if (inimigosDerrotados) {
+        para();
+        return;
+    }
+
+    
+        if (indoParaCentro) {
+            moverParaCoordenada(centroX, centroY);
 
 public class AgenteAxenteFaiz extends Agente {
     private boolean parado = false;       
@@ -34,23 +72,22 @@ public class AgenteAxenteFaiz extends Agente {
         }
     }
 
-    @Override
-    public void pensa() {
-        if (alvoX != null && alvoY != null) {
-            moverParaCoordenada(alvoX, alvoY);
+ 
+
+            if (Math.abs(getX() - alvoX) <= 1 && Math.abs(getY() - alvoY) <= 1) {
+                alvoX = null;
+                alvoY = null;
+            }
         } else {
             if (!podeMoverPara(getDirecao())) {
                 setDirecao(geraDirecaoAleatoria());
             }
-        }
-    }
-
+          
     private void moverParaCoordenada(int destinoX, int destinoY) {
         int dx = destinoX - getX();
         int dy = destinoY - getY();
         if (dx == 0 && dy == 0) return;
 
-        int direcao;
         if (Math.abs(dx) > Math.abs(dy)) {
             direcao = dx > 0 ? DIREITA : ESQUERDA;
         } else {
@@ -72,6 +109,7 @@ public class AgenteAxenteFaiz extends Agente {
         String msg = "COGUMELO:" + getId() + ":" + getX() + ":" + getY() + ":" + getEnergia();
         enviaMensagem(msg);
         System.out.println("[AxenteFaiz " + getId() + "] Achei cogumelo! " + msg);
+
     }
 
     @Override
@@ -121,10 +159,22 @@ public class AgenteAxenteFaiz extends Agente {
 
             } catch (NumberFormatException e) {
             }
-        }
+
+      
+      
+    @Override
+    public void tomouDano(int energiaRestanteInimigo) {
     }
 
     @Override
+    public void ganhouCombate() {
+        enviaMensagem("INIMIGO_MORTO");
+
+        inimigosDerrotados = false;
+    }
+
+    @Override
+
     public void tomouDano(int energiaRestanteInimigo) {
         // comportamento padrão: ignora
     }
@@ -134,9 +184,6 @@ public class AgenteAxenteFaiz extends Agente {
         // comportamento padrão: ignora
     }
 
-    @Override
-    public String getEquipe() {
-        return "AxenteFaiz";
-    }
 
 }
+
